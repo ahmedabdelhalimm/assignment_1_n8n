@@ -1,0 +1,273 @@
+{
+  "name": "assignment_2",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "student result",
+        "formDescription": "enter your data",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "name"
+            },
+            {
+              "fieldLabel": "email"
+            },
+            {
+              "fieldLabel": "student report",
+              "fieldType": "file"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ca5396f7-0187-47f9-ac1a-116d019c5075",
+      "name": "On form submission",
+      "webhookId": "51d0c011-f447-41a5-b191-ee6a5d65b39b"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "student_report",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "b1a5ec68-e428-4052-845c-ed8880e238c6",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "= You are a Student Result Report Analyzer.  Your task is to analyze the extracted text from a student's PDF result report and extract the student's information accurately.  INPUT: You will receive the extracted text from a PDF student result report.  YOUR TASKS:  1. Extract the student's full name. 2. Extract the student's email address. 3. Identify the student's status exactly as written in the report. 4. Extract any additional relevant information that helps identify the student's result, if available.  IMPORTANT RULES:  - Read and analyze the entire report carefully. - Do not guess or invent any information. - Do not calculate or change the student's status. - The status must be taken directly from the report. - Do not confuse the report author's name with the student's name. - If a field is missing, return null. - If the status is unclear or missing, return null. - Process only one student's report at a time. - Do not generate or send emails. - Do not make decisions about which email should be sent.  OUTPUT FORMAT:  Return ONLY a valid JSON object with the following structure:  {   \"student_name\": \"Full student name\",   \"student_email\": \"Student email address\",   \"student_status\": \"Status exactly as written in the report\",   \"additional_info\": \"Relevant result information or null\" }  Do not include Markdown, explanations, comments, or any text outside the JSON object.  PDF REPORT TEXT: {{ $json.text }}\n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3f4a71bf-cb2b-4422-8dc2-18fb4a7c655a",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        352,
+        208
+      ],
+      "id": "adbc2af9-1016-458c-b569-93060b67bc89",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "IC3H6Z6CCzxy35z6",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const data = item.json || {};\n  let response = data.text ?? data.output ?? data.response ?? data.message?.content ?? data.data;\n\n  if (!response) {\n    throw new Error(\"البيانات مش واصلة من نود الـ AI. تأكد إن نود الـ AI شغالة ومرجعتش نتيجة فارغة.\");\n  }\n\n  if (typeof response === \"string\") {\n    response = response.replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n  }\n\n  const student = typeof response === \"object\" ? response : JSON.parse(response);\n  const rawStatus = String(student.student_status ?? student.status ?? \"\").toLowerCase().trim();\n\n  let normalizedStatus;\n  if (/\\bfailed\\b|\\bdid not pass\\b|\\bnot passed\\b/.test(rawStatus)) {\n    normalizedStatus = \"Failed\";\n  } else if (/\\bpassed\\b/.test(rawStatus)) {\n    normalizedStatus = \"Passed\";\n  } else {\n    normalizedStatus = \"Failed\"; // قيمة افتراضية عشان الكود ما يضربش لو الحالة مش واضحة\n  }\n\n  return {\n    json: {\n      student_name: student.student_name ?? student.name ?? \"Student\",\n      student_email: student.student_email ?? student.email ?? null,\n      student_status: normalizedStatus,\n      is_passed: normalizedStatus === \"Passed\" ? \"true\" : \"false\",\n      additional_info: student.additional_info ?? student.feedback ?? \"No details provided\"\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "f939ab66-ec95-47db-b08b-74d3b7537447",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "239cb84a-89a7-4eee-b326-348d751da718",
+              "leftValue": "={{ $json.is_passed }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        976,
+        0
+      ],
+      "id": "228eae69-5915-461b-aacf-45f2862f44be",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission').first().json.email }}",
+        "subject": "student status in course",
+        "message": "=Congratulations for passing the AI Automation course, {{ $json.student_name }}!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        -128
+      ],
+      "id": "412b5049-f4e5-4944-8b3f-6cb5136e941e",
+      "name": "Send a message",
+      "webhookId": "a5834257-cb9f-4688-8ddd-106cc4746ed4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zg1NLvzeaglt4JOF",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission').first().json.email }}",
+        "subject": "student status in course",
+        "message": "=Unfortunately, you did not pass the AI Automation course, {{ $json.student_name }}!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        64
+      ],
+      "id": "649b6b55-e72a-40ff-9aec-a7ba67697e60",
+      "name": "Send a message1",
+      "webhookId": "1c99d980-e20b-4593-bb69-6bdcc9a48a95",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zg1NLvzeaglt4JOF",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2e5d16c2-20f4-4a61-8a2e-b193a9d4d096",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8955a0d9326d209351b4f0641de4f27d46e5079fb7b54178649d4019670855b6"
+  },
+  "id": "Z9YfhLPhsKMfjj4K",
+  "tags": []
+}
