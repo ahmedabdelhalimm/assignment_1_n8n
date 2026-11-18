@@ -1,0 +1,218 @@
+{
+  "name": "assignment_1",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1E8kw2e5aPmX1Frsu35upXqyrnNp8SNZH8WGZeiM_d9o",
+          "mode": "list",
+          "cachedResultName": "assignment_1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E8kw2e5aPmX1Frsu35upXqyrnNp8SNZH8WGZeiM_d9o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E8kw2e5aPmX1Frsu35upXqyrnNp8SNZH8WGZeiM_d9o/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "product",
+              "lookupValue": "={{ $json.message.text.split(' ')[0] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "36ec3a93-00a2-4cc3-89b4-128ade9f3416",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2pu2MDXP3RV28u30",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1E8kw2e5aPmX1Frsu35upXqyrnNp8SNZH8WGZeiM_d9o",
+          "mode": "list",
+          "cachedResultName": "assignment_1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E8kw2e5aPmX1Frsu35upXqyrnNp8SNZH8WGZeiM_d9o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E8kw2e5aPmX1Frsu35upXqyrnNp8SNZH8WGZeiM_d9o/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "product": "={{ $json.product }}",
+            "price": "={{ $json.price -($json.price * ($('Telegram Trigger').item.json.message.text.split(' ')[1].replace('%','') / 100)) }}"
+          },
+          "matchingColumns": [
+            "product"
+          ],
+          "schema": [
+            {
+              "id": "product",
+              "displayName": "product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        0
+      ],
+      "id": "de3653a9-1438-4c36-baca-cb58b07b4789",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2pu2MDXP3RV28u30",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cebe18b9-75f7-4df6-bad8-8e1c10427418",
+      "name": "Telegram Trigger",
+      "webhookId": "b8474519-664c-4b17-b7e8-aacef2eb215e",
+      "credentials": {
+        "telegramApi": {
+          "id": "MLkXjTACsynDFMoY",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Successfully updated! Product and percentage applied: {{ $json.message.text }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "22c28064-e156-4f77-86a7-a4c303368006",
+      "name": "Send a text message",
+      "webhookId": "8d2f6ca2-5399-484a-b538-25d46c1dd2a4",
+      "credentials": {
+        "telegramApi": {
+          "id": "MLkXjTACsynDFMoY",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "81c4b7c1-86b8-424a-bd8b-a7392d0a4f0e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8955a0d9326d209351b4f0641de4f27d46e5079fb7b54178649d4019670855b6"
+  },
+  "id": "jutY5YUEmZ9sigRA",
+  "tags": []
+}
